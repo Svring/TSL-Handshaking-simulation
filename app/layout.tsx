@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: any }) {
         />
       </head>
       <body className={`${fonts.athelas} antialiased`} >
-        <MantineProvider theme={theme}>{children}</MantineProvider>
+        <MantineProvider defaultColorScheme="dark">{children}</MantineProvider>
       </body>
     </html>
   );
