@@ -19,7 +19,7 @@ export class Certificate {
             },
             validity: {
                 notBefore: new Date('2023-01-01T00:00:00Z'),
-                notAfter: new Date('2024-01-01T00:00:00Z'),
+                notAfter: new Date('2025-01-01T00:00:00Z'),
             },
             subject: {
                 countryName: 'US',
@@ -55,7 +55,7 @@ export class Certificate {
             },
             validity: {
                 notBefore: new Date('2023-01-01'),
-                notAfter: new Date('2024-01-01')
+                notAfter: new Date('2025-01-01')
             },
             subject: {
                 countryName: 'US',
