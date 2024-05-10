@@ -17,7 +17,7 @@ export default function PrivateKey() {
                     在TLS
                 </Text>
             </Drawer>
-            <Button onClick={open} justify="center" w={'45%'} variant="default" mt="md">
+            <Button onClick={open} justify="center" fullWidth variant="default" mt="md">
                 私钥
             </Button>
         </>
