@@ -22,7 +22,7 @@ import SelectedSuite from "../SelectedSuite/SelectedSuite";
 export default function Server({ clock, message, setMessage }:
     { clock: number, message: any, setMessage: Dispatch<any> }) {
 
-    const supportedSuite = "TLS_RSA_WITH_AES_256_CBC_SHA256";
+    const selectedSuite = "TLS_RSA_WITH_AES_256_CBC_SHA256";
     const [publicKey, setPublicKey] = useState<CryptoKey>();
     const [privateKey, setPrivateKey] = useState<CryptoKey>();
     const [random, setRandom] = useState<ArrayBuffer>(Buffer.from(''));
@@ -40,26 +40,26 @@ export default function Server({ clock, message, setMessage }:
     }, []);
 
     useEffect(() => {
-        if (clock === 0) {
-            console.log("Server: Server Reset.");
-        }
-        if (clock === 2) {
-            console.log("Server: Clock equals 2, Client Message Received as shown below.");
-            console.log(message);
+        async function handleClockState() {
+            if (clock === 0) {
+                console.log("Server: Server Reset.");
+            } else if (clock === 2) {
+                console.log("Server: Clock equals 2, Client Message Received as shown below.");
+                console.log(message);
 
-            console.log("Server: Server Hello Initiated.");
-            const serverHelloTemp = ServerHello(message);
+                console.log("Server: Server Hello Initiated.");
+                const serverHelloTemp = ServerHello(message);
 
-            console.log("Server: Server Certificate Transmission Initiated.");
-            const serverCertificateTemp = ServerCertificate();
+                console.log("Server: Server Certificate Transmission Initiated.");
+                const serverCertificateTemp = ServerCertificate();
 
-            console.log("Server: Server Hello Done Initiated.");
-            const serverDoneTemp = ServerDone();
+                console.log("Server: Server Hello Done Initiated.");
+                const serverDoneTemp = ServerDone();
 
-            if (publicKey) {
-                window.crypto.subtle.exportKey('jwk', publicKey)
-                    .then(jwk => {
-                        console.log("Server: Server Public Key Exoirted As Below.");
+                if (publicKey) {
+                    try {
+                        const jwk = await window.crypto.subtle.exportKey('jwk', publicKey);
+                        console.log("Server: Server Public Key Exported As Below.");
                         console.log(jwk);
                         const messageTemp = {
                             serverHello: serverHelloTemp,
@@ -70,16 +70,18 @@ export default function Server({ clock, message, setMessage }:
                         setMessage(messageTemp);
                         console.log("Server: Server Hello Done, message shown below.");
                         console.log(messageTemp);
-                    })
-            }
-        }
-        if (clock === 4) {
-            console.log("Server: Clock equals 4, Client Message Received as shown below.");
-            console.log(message);
+                    } catch (error) {
+                        console.error("Error exporting public key:", error);
+                    }
+                }
+            } else if (clock === 4) {
+                console.log("Server: Clock equals 4, Client Message Received as shown below.");
+                console.log(message);
 
-            console.log("Server: Client Pre-Master Secret paring Initiated.");
-            computeMasterSecret(message)
-                .then(data => {
+                console.log("Server: Client Pre-Master Secret pairing Initiated.");
+                try {
+                    await computeMasterSecret(message);
+
                     console.log("Server: Server ChangeCipherSpec Initiated.");
                     const changeCipherSpecTemp = changeCipherSpec();
 
@@ -93,26 +95,35 @@ export default function Server({ clock, message, setMessage }:
                     setMessage(messageTemp);
                     console.log("Server: Server Finished Done, message shown below.");
                     console.log(messageTemp);
-                })
+                } catch (error) {
+                    console.error("Error during master secret computation or server finished:", error);
+                }
+            } else if (clock === 5) {
+                console.log("Server: Clock equals 5, Application Data reception Initiated.");
+            }
         }
-        if (clock === 5) {
-            console.log("Server: Clock equals 5, Application Data reception Initiated.");
-        }
+
+        handleClockState();
     }, [clock]);
 
     useEffect(() => {
-        if (clock === 5) {
-            if (secret) {
+        async function handleApplicationData() {
+            if (clock === 5 && secret) {
                 console.log("Server: Application Data Received As Show Below.");
                 console.log(message);
-                decryptData(secret, message.encryptedData, message.iv)
-                    .then(result => {
-                        console.log("Server: Application Data Received As Show Below.");
-                        console.log(result);
-                    })
+                try {
+                    const result = await PreMasterSecret.decryptData(secret, message.encryptedData, message.iv);
+                    console.log("Server: Application Data Received As Show Below.");
+                    console.log(result);
+                } catch (error) {
+                    console.error("Error decrypting application data:", error);
+                }
             }
         }
-    }, [message]);
+
+        handleApplicationData();
+    }, [message, clock, secret]);
+
 
     function generateRandom() {
         const clientRandom = new Uint8Array(32);
@@ -127,14 +138,6 @@ export default function Server({ clock, message, setMessage }:
             .then(({ publicKey, privateKey }) => {
                 setPublicKey(publicKey);
                 setPrivateKey(privateKey);
-                // window.crypto.subtle.exportKey('jwk', publicKey)
-                //     .then(jwk => {
-                //         setPublicKey(jwk)
-                //     })
-                // window.crypto.subtle.exportKey('jwk', privateKey)
-                //     .then(jwk => {
-                //         setPrivateKey(jwk)
-                //     })
             })
             .catch(err => console.log(err));
     }
@@ -149,11 +152,11 @@ export default function Server({ clock, message, setMessage }:
             console.log(message.random);
             setClientRandom(message.random);
         }
-        if (message.cipherSuites.includes(supportedSuite)) {
+        if (message.cipherSuites.includes(selectedSuite)) {
             console.log('Server: supported ciphersuite exists in message.');
             const temp = {
                 tlsVersion: 'TLSv1.2',
-                cipherSuite: supportedSuite,
+                cipherSuite: selectedSuite,
                 random: random,
                 extensions: {
                     serverName: 'example.com',
@@ -197,125 +200,28 @@ export default function Server({ clock, message, setMessage }:
         if (privateKey) {
             try {
                 // Use await to wait for the decryption to complete
-                const preMasterTemp = await window.crypto.subtle.decrypt({ name: 'RSA-OAEP' },
-                    privateKey, encryptedPreMasterTemp);
+                const preMasterTemp = await window.crypto.subtle.decrypt({ name: 'RSA-OAEP' }, privateKey, encryptedPreMasterTemp);
                 console.log("Server: Pre-Master Secret Decrypted As Below.");
                 console.log(preMasterTemp);
                 setPreMaster(preMasterTemp);
 
                 if (clientRandom) {
                     // Assuming PreMasterSecret.prf is an async function that returns a Promise
-                    const masterSecret = await PreMasterSecret.prf(preMasterTemp, 'master secret', combineArrayBuffers(clientRandom, random));
+                    const masterSecret = await PreMasterSecret.prf(preMasterTemp, 'master secret', PreMasterSecret.combineArrayBuffers(clientRandom, random));
                     console.log("Server: Master Secret Computed As Below.");
                     console.log(masterSecret);
                     setMaster(masterSecret);
 
-                    importSeedAsKey(masterSecret)
-                        .then(key => {
-                            deriveSymmetricKey(key, combineArrayBuffers(clientRandom, random), 256)
-                                .then(secret => {
-                                    console.log("Server: Secret Key Computed As Below.");
-                                    console.log(secret);
-                                    setSecret(secret);
-                                })
-                        })
+                    const key = await PreMasterSecret.importSeedAsKey(masterSecret);
+                    const secret = await PreMasterSecret.deriveSymmetricKey(key, PreMasterSecret.combineArrayBuffers(clientRandom, random), 256);
+                    console.log("Server: Secret Key Computed As Below.");
+                    console.log(secret);
+                    setSecret(secret);
                 }
             } catch (error) {
                 console.error("Error during decryption or master secret computation:", error);
             }
         }
-    }
-
-    async function encryptData(key: CryptoKey, data: string): Promise<{ encryptedData: ArrayBuffer, iv: Uint8Array }> {
-        const encoder = new TextEncoder();
-        const messageUTF8 = encoder.encode(data);
-
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const algorithm: AesGcmParams = {
-            iv,
-            name: 'AES-GCM',
-        };
-
-        const encryptedData = await window.crypto.subtle.encrypt(
-            algorithm,
-            key,
-            messageUTF8,
-        );
-
-        return { encryptedData, iv };
-    }
-
-    async function decryptData(key: CryptoKey, encryptedData: ArrayBuffer, iv: Uint8Array): Promise<string> {
-        const algorithm: AesGcmParams = {
-            iv,
-            name: 'AES-GCM',
-        };
-
-        const decryptedData = await window.crypto.subtle.decrypt(
-            algorithm,
-            key,
-            encryptedData,
-        );
-
-        const decoder = new TextDecoder();
-        const decryptedMessage = decoder.decode(decryptedData);
-
-        return decryptedMessage;
-    }
-
-
-    function combineArrayBuffers(buffer1: ArrayBuffer, buffer2: ArrayBuffer): ArrayBuffer {
-        // Create a new Uint8Array with the combined length of the two buffers
-        const combined = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-
-        // Copy the data from the first buffer into the combined buffer
-        combined.set(new Uint8Array(buffer1), 0);
-
-        // Copy the data from the second buffer into the combined buffer, starting after the first buffer's data
-        combined.set(new Uint8Array(buffer2), buffer1.byteLength);
-
-        // Return the underlying ArrayBuffer of the combined Uint8Array
-        return combined.buffer;
-    }
-
-    async function importSeedAsKey(seed: ArrayBuffer): Promise<CryptoKey> {
-        const key = await crypto.subtle.importKey(
-            "raw", // format
-            seed, // keyData
-            { name: "PBKDF2" }, // algorithm
-            false, // extractable
-            ["deriveKey"] // keyUsages
-        );
-
-        return key;
-    }
-
-    async function deriveSymmetricKey(seedKey: CryptoKey, salt: ArrayBuffer, keyLength: number): Promise<CryptoKey> {
-        // Define the PBKDF2 parameters
-        const params: Pbkdf2Params = {
-            name: "PBKDF2",
-            salt: salt,
-            iterations: 100000, // Adjust the number of iterations based on your security requirements
-            hash: "SHA-256",
-        };
-
-        // Define the key algorithm and usages
-        const keyAlgorithm: AesKeyAlgorithm = {
-            name: "AES-GCM",
-            length: keyLength, // e.g., 128, 192, or 256 bits
-        };
-        const keyUsages: KeyUsage[] = ["encrypt", "decrypt"];
-
-        // Derive the symmetric key from the seed
-        const symmetricKey = await crypto.subtle.deriveKey(
-            params,
-            seedKey,
-            keyAlgorithm,
-            false, // Whether the derived key is extractable
-            keyUsages
-        );
-
-        return symmetricKey;
     }
 
 
@@ -325,16 +231,13 @@ export default function Server({ clock, message, setMessage }:
 
             </Card.Section>
 
-            <SelectedSuite />
+            <SelectedSuite selectedSuite={selectedSuite} />
+
+            <PrivateKey />
 
             <Group gap={'md'} justify="space-around" align="space-around">
-                <PublicKey />
-                <PrivateKey />
-            </Group>
-
-            <Group gap={'md'} justify="space-around" align="space-around">
-                <CertificateComponent />
-                <PublicKey />
+                <CertificateComponent certificate={certificate} />
+                <PublicKey publicKey={publicKey} />
             </Group>
 
             <Group gap={'md'} justify="space-around" align="space-around">

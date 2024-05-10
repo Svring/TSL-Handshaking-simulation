@@ -1,4 +1,4 @@
-import { Drawer, Text, Button, Divider, Title, Paper, Card, Group, } from "@mantine/core";
+import { Drawer, Text, Button, Divider, Title, Paper, Card, Group, Image } from "@mantine/core";
 import { useDisclosure } from '@mantine/hooks';
 import { TlsServerCertificate } from "@/models/handshake";
 
@@ -35,12 +35,23 @@ export default function CA({ ca }: { ca: TlsServerCertificate[] }) {
                         4.验证证书的扩展信息：如果证书包含扩展信息（例如，主题备用名称（SANs）），客户端会检查这些信息是否也与其尝试连接的服务器匹配。
                         <br />
                         5.验证证书的指纹：客户端可以选择性地验证证书的指纹，以确保证书的完整性。
+                        <br />
+                        <Divider />
+                        在本项目中，由于时间限制和复杂度的考虑，客户端和服务器间仅存在证书交换，不进行验证过程。
+                        <br />
+                        证书验证过程图示如下：
+                        <Image
+                            src={'/certificate-chain.png'}
+                            alt='certificate-chain.pnng'
+                            radius={'md'}
+                            py={'md'}
+                        />
                     </Text>
                 </Paper>
                 <Divider />
                 <Paper shadow="xs" p="md">
                     <Title order={3}>
-                        内容
+                        本地的CA列表
                     </Title>
                     {ca.map((cert, index) => (
                         <CertificateCard certificate={cert} key={index} />
