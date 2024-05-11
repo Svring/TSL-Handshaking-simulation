@@ -1,10 +1,26 @@
 'use client'
 
-import { Drawer, Text, Button, Divider, Title, Paper } from "@mantine/core";
+import { Drawer, Text, Button, Divider, Title, Paper, List } from "@mantine/core";
 import { useDisclosure } from '@mantine/hooks';
 
-export default function PublicKey({ publicKey }: { publicKey: CryptoKey | JsonWebKey | undefined}) {
+export default function PublicKey({ publicKey }: { publicKey: JsonWebKey | undefined }) {
     const [opened, { open, close }] = useDisclosure(false);
+
+    const displayJsonWebKey = (key: JsonWebKey) => {
+        return (
+            <List>
+                <List.Item><strong>Key Type:</strong> {key.kty}</List.Item>
+                <List.Item><strong>Algorithm:</strong> {key.alg}</List.Item>
+                <List.Item><strong>Public Exponent:</strong> {key.e}</List.Item>
+                <List.Item>
+                    <strong>Public Key:</strong>
+                    <Text style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {key.n}
+                    </Text>
+                </List.Item>
+            </List>
+        );
+    };
 
     return (
         <>
@@ -31,7 +47,7 @@ export default function PublicKey({ publicKey }: { publicKey: CryptoKey | JsonWe
                         服务器公钥：
                     </Title>
                     <br />
-
+                    {publicKey && typeof publicKey === 'object' && displayJsonWebKey(publicKey as JsonWebKey)}
                 </Paper>
             </Drawer >
             <Button onClick={open} justify="center" w={'45%'} variant="default" mt="md">

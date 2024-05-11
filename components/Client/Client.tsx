@@ -27,7 +27,7 @@ export default function Client({ clock, message, setMessage }:
     const [ciphersuite, setCiphersuite] = useState<string[]>(Ciphersuite.cipherSuites);
     const [selectedSuite, setSelectedSuite] = useState<string>('');
     const [random, setRandom] = useState<ArrayBuffer>(Buffer.from(''));
-    const [serverRandom, setServerRandom] = useState<ArrayBuffer>();
+    const [serverRandom, setServerRandom] = useState<ArrayBuffer>(Buffer.from(''));
     const [serverPublic, setServerPublic] = useState<JsonWebKey>();
     const [certificate, setCertificate] = useState<TlsServerCertificate>();
     const [preMaster, setPreMaster] = useState<ArrayBuffer>(Buffer.from(''));
@@ -41,6 +41,17 @@ export default function Client({ clock, message, setMessage }:
     useEffect(() => {
         async function handleClockState() {
             if (clock === 0) {
+                setData('');
+                setCa(Certificate.certificateAuthority);
+                setCiphersuite(Ciphersuite.cipherSuites);
+                setSelectedSuite('');
+                setRandom(Buffer.from(''));
+                setServerRandom(Buffer.from(''));
+                setServerPublic(undefined);
+                setCertificate(undefined);
+                setPreMaster(Buffer.from(''));
+                setMaster(Buffer.from(''));
+                setSecret(undefined);
                 console.log("Client: Client Reset.");
             } else if (clock === 1) {
                 console.log("Client: Clock equals 1, client hello initiated.");
@@ -205,13 +216,13 @@ export default function Client({ clock, message, setMessage }:
             </Group>
 
             <Group gap={'md'} justify="space-around" align="space-around">
-                <Random />
-                <Random />
+                <Random name="客户端随机数" random={random} />
+                <Random name="服务器随机数" random={serverRandom} />
             </Group>
 
-            <PreMaster />
+            <PreMaster preMaster={preMaster} />
 
-            <Master />
+            <Master master={master} />
 
             <Input variant="filled" py={'md'} placeholder="Data for transmission"
                 value={data} onChange={(event) => setData(event.currentTarget.value)} />

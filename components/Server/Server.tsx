@@ -24,9 +24,11 @@ export default function Server({ clock, message, setMessage }:
 
     const selectedSuite = "TLS_RSA_WITH_AES_256_CBC_SHA256";
     const [publicKey, setPublicKey] = useState<CryptoKey>();
+    const [jwkPublicKey, setJwkPublicKey] = useState<JsonWebKey>();
     const [privateKey, setPrivateKey] = useState<CryptoKey>();
+    const [jwkPrivateKey, setJwkPrivateKey] = useState<JsonWebKey>();
     const [random, setRandom] = useState<ArrayBuffer>(Buffer.from(''));
-    const [clientRandom, setClientRandom] = useState<ArrayBuffer>();
+    const [clientRandom, setClientRandom] = useState<ArrayBuffer>(Buffer.from(''));
     const [certificate, setCertificate] =
         useState<TlsServerCertificate>(Certificate.certificateAuthority[0]);
     const [preMaster, setPreMaster] = useState<ArrayBuffer>(Buffer.from(''));
@@ -42,6 +44,16 @@ export default function Server({ clock, message, setMessage }:
     useEffect(() => {
         async function handleClockState() {
             if (clock === 0) {
+                setPublicKey(undefined);
+                setJwkPublicKey(undefined);
+                setPrivateKey(undefined);
+                setJwkPrivateKey(undefined);
+                setRandom(Buffer.from(''));
+                setClientRandom(Buffer.from(''));
+                setCertificate(Certificate.certificateAuthority[0]);
+                setPreMaster(Buffer.from(''));
+                setMaster(Buffer.from(''));
+                setSecret(undefined);
                 console.log("Server: Server Reset.");
             } else if (clock === 2) {
                 console.log("Server: Clock equals 2, Client Message Received as shown below.");
@@ -122,7 +134,7 @@ export default function Server({ clock, message, setMessage }:
         }
 
         handleApplicationData();
-    }, [message, clock, secret]);
+    }, [message]);
 
 
     function generateRandom() {
@@ -138,6 +150,18 @@ export default function Server({ clock, message, setMessage }:
             .then(({ publicKey, privateKey }) => {
                 setPublicKey(publicKey);
                 setPrivateKey(privateKey);
+                window.crypto.subtle.exportKey('jwk', publicKey)
+                    .then(jwk => {
+                        console.log("Server: Public Key Exported As Below.");
+                        console.log(jwk);
+                        setJwkPublicKey(jwk);
+                    })
+                window.crypto.subtle.exportKey('jwk', privateKey)
+                    .then(jwk => {
+                        console.log("Server: Private Key Exported As Below.");
+                        console.log(jwk);
+                        setJwkPrivateKey(jwk);
+                    })
             })
             .catch(err => console.log(err));
     }
@@ -233,21 +257,21 @@ export default function Server({ clock, message, setMessage }:
 
             <SelectedSuite selectedSuite={selectedSuite} />
 
-            <PrivateKey />
+            <PrivateKey privateKey={jwkPrivateKey} />
 
             <Group gap={'md'} justify="space-around" align="space-around">
                 <CertificateComponent certificate={certificate} />
-                <PublicKey publicKey={publicKey} />
+                <PublicKey publicKey={jwkPublicKey} />
             </Group>
 
             <Group gap={'md'} justify="space-around" align="space-around">
-                <Random />
-                <Random />
+                <Random name="客户端随机数" random={clientRandom} />
+                <Random name="服务器随机数" random={random} />
             </Group>
 
-            <PreMaster />
+            <PreMaster preMaster={preMaster} />
 
-            <Master />
+            <Master master={master} />
         </Card>
     );
 }

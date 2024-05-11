@@ -1,21 +1,83 @@
-import { Drawer, Text, Button, Divider } from "@mantine/core";
+'use client'
+
+import { Drawer, Text, Button, Divider, Title, Paper, List } from "@mantine/core";
 import { useDisclosure } from '@mantine/hooks';
 
-export default function PrivateKey() {
+export default function PrivateKey({ privateKey }: { privateKey: JsonWebKey | undefined }) {
     const [opened, { open, close }] = useDisclosure(false);
+
+    const displayJsonWebKey = (key: JsonWebKey) => {
+        return (
+            <List>
+                <List.Item><strong>Key Type:</strong> {key.kty}</List.Item>
+                <List.Item><strong>Algorithm:</strong> {key.alg}</List.Item>
+                <List.Item><strong>Public Exponent:</strong> {key.e}</List.Item>
+                <List.Item>
+                    <strong>n:</strong>
+                    <Text style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {key.n}
+                    </Text>
+                </List.Item>
+                <List.Item>
+                    <strong>p:</strong>
+                    <Text style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {key.p}
+                    </Text>
+                </List.Item>
+                <List.Item>
+                    <strong>q:</strong>
+                    <Text style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {key.q}
+                    </Text>
+                </List.Item>
+                <List.Item>
+                    <strong>qi:</strong>
+                    <Text style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {key.qi}
+                    </Text>
+                </List.Item>
+                <List.Item>
+                    <strong>d:</strong>
+                    <Text style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {key.d}
+                    </Text>
+                </List.Item>
+                <List.Item>
+                    <strong>dp:</strong>
+                    <Text style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {key.dp}
+                    </Text>
+                </List.Item>
+                <List.Item>
+                    <strong>dq:</strong>
+                    <Text style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                        {key.dq}
+                    </Text>
+                </List.Item>
+            </List>
+        );
+    };
 
     return (
         <>
             <Drawer opened={opened} onClose={close} title="Private Key">
-                <Text>
-                    证书颁发机构（Certificate Authority，简称CA）是一个可信的第三方机构，它负责颁发和管理数字证书。
-                    数字证书是一种电子文档，用于证明个人、组织或设备的身份，以及其他相关信息，如公钥。
-                    CA通过验证申请者的身份和信息，然后签发证书，以此来确保网络通信的安全性和可信度。
-                </Text>
+            <Paper shadow="xs" p="md">
+                    <Title order={3}>
+                        简介
+                    </Title>
+                    <Text>
+                        在TLS握手过程的初期阶段，客户端使用服务器的公钥加密一个随机生成的预主密钥，然后将加密后的信息发送给服务器。
+                        服务器使用自己的私钥来解密这个信息，从而获取到预主密钥。
+                    </Text>
+                </Paper>
                 <Divider />
-                <Text>
-                    在TLS
-                </Text>
+                <Paper shadow="xs" p="md">
+                    <Title order={3}>
+                        服务器私钥：
+                    </Title>
+                    <br />
+                    {privateKey && typeof privateKey === 'object' && displayJsonWebKey(privateKey)}
+                </Paper>
             </Drawer>
             <Button onClick={open} justify="center" fullWidth variant="default" mt="md">
                 私钥
