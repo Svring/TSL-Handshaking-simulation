@@ -1,27 +1,26 @@
-'use client'
+'use client';
 
-import { Card, Group, Input } from "@mantine/core";
-import { useState, useEffect, Dispatch } from "react";
-import { Ciphersuite } from "@/models/ciphersuite";
-import { Certificate } from "@/models/Certificate";
+import { Card, Group, Input } from '@mantine/core';
+import { useState, useEffect, Dispatch } from 'react';
+import { Ciphersuite } from '@/models/ciphersuite';
+import { Certificate } from '@/models/Certificate';
 import {
     TlsServerCertificate, TlsClientHello,
-    TlsClientKeyExchange, TlsChangeCipherSpec, TlsFinished
-} from "@/models/handshake";
+    TlsClientKeyExchange, TlsChangeCipherSpec, TlsFinished,
+} from '@/models/handshake';
 
-import CA from "../CA/CA";
-import CipherSuite from "../CipherSuite/CipherSuite";
-import PublicKey from "../PublicKey/PublicKey";
-import CertificateComponent from "../Certificate/Certificate";
-import Random from "../Random/Random";
-import PreMaster from "../PreMaster/PreMaster";
-import Master from "../Master/Master";
-import SelectedSuite from "../SelectedSuite/SelectedSuite";
+import CA from '../CA/CA';
+import CipherSuite from '../CipherSuite/CipherSuite';
+import PublicKey from '../PublicKey/PublicKey';
+import CertificateComponent from '../Certificate/Certificate';
+import Random from '../Random/Random';
+import PreMaster from '../PreMaster/PreMaster';
+import Master from '../Master/Master';
+import SelectedSuite from '../SelectedSuite/SelectedSuite';
 import { PreMasterSecret } from '../../models/MasterSecret';
 
 export default function Client({ clock, message, setMessage }:
     { clock: number, message: any, setMessage: Dispatch<any> }) {
-
     const [data, setData] = useState<string>('');
     const [ca, setCa] = useState<TlsServerCertificate[]>(Certificate.certificateAuthority);
     const [ciphersuite, setCiphersuite] = useState<string[]>(Ciphersuite.cipherSuites);
@@ -52,26 +51,27 @@ export default function Client({ clock, message, setMessage }:
                 setPreMaster(Buffer.from(''));
                 setMaster(Buffer.from(''));
                 setSecret(undefined);
-                console.log("Client: Client Reset.");
+                generateRandom();
+                console.log('Client: Client Reset.');
             } else if (clock === 1) {
-                console.log("Client: Clock equals 1, client hello initiated.");
+                console.log('Client: Clock equals 1, client hello initiated.');
                 const clientHelloTemp = clientHello();
 
                 setMessage(clientHelloTemp);
-                console.log("Client: Client Hello Done, message shown below.");
+                console.log('Client: Client Hello Done, message shown below.');
                 console.log(clientHelloTemp);
             } else if (clock === 3) {
                 console.log("Client: Clock equals 3, server's message shown below.");
                 console.log(message);
 
-                console.log("Client: Client Key Exchange Initiated.");
+                console.log('Client: Client Key Exchange Initiated.');
                 try {
                     const clientKeyExchangeTemp = await clientKeyExchange(message);
 
-                    console.log("Client: Client ChangeCipherSpec Initiated.");
+                    console.log('Client: Client ChangeCipherSpec Initiated.');
                     const changeCipherSpecTemp = changeCipherSpec();
 
-                    console.log("Client: Client Finished Initiated.");
+                    console.log('Client: Client Finished Initiated.');
                     const clientFinishedTemp = clientFinished();
 
                     const messageTemp = {
@@ -80,14 +80,14 @@ export default function Client({ clock, message, setMessage }:
                         clientFinished: clientFinishedTemp
                     };
                     setMessage(messageTemp);
-                    console.log("Client: Client Finished Done, message shown below.");
+                    console.log('Client: Client Finished Done, message shown below.');
                     console.log(messageTemp);
                 } catch (error) {
-                    console.error("Error during client key exchange or client finished:", error);
+                    console.error('Error during client key exchange or client finished:', error);
                 }
             } else if (clock === 5) {
                 await computeMasterSecret();
-                console.log("Client: Clock equals 5, Application Data Delivery Initiated.");
+                console.log('Client: Clock equals 5, Application Data Delivery Initiated.');
             }
         }
 
@@ -112,67 +112,67 @@ export default function Client({ clock, message, setMessage }:
                 serverName: 'example.com', // SNI扩展示例
                 maxFragmentLength: 2048, // 最大片段长度扩展示例
             },
-        }
+        };
         return temp;
     }
 
     async function clientKeyExchange(message: any): Promise<TlsClientKeyExchange | void> {
         const certificate: TlsServerCertificate = message.serverCertificate;
         if (ca.includes(certificate)) {
-            console.log("Client: Server Certificate is valid.");
+            console.log('Client: Server Certificate is valid.');
             setCertificate(certificate);
         }
 
         if (message.serverHello.random) {
-            console.log("Client: Server Random Exists as Shown Below.");
+            console.log('Client: Server Random Exists as Shown Below.');
             console.log(message.serverHello.random);
             setServerRandom(message.serverHello.random);
         }
 
         if (message.serverHello.cipherSuite) {
-            console.log("Client: Server Selected Suite As Shown Below.");
+            console.log('Client: Server Selected Suite As Shown Below.');
             console.log(message.serverHello.cipherSuite);
             setSelectedSuite(message.serverHello.cipherSuite);
         }
 
         const serverPublicKey = message.serverPublicKey;
-        console.log("Client: Server Public Key As Below.");
+        console.log('Client: Server Public Key As Below.');
         setServerPublic(serverPublicKey);
 
         try {
             const preMaster = await PreMasterSecret.generatePremasterSecret();
-            console.log("Client: PreMasterSecret Generated As Below.");
+            console.log('Client: PreMasterSecret Generated As Below.');
             console.log(preMaster);
             setPreMaster(preMaster);
 
             const publicKey = await window.crypto.subtle.importKey('jwk', serverPublicKey,
                 { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['encrypt']);
-            console.log("Client: Server Public Key Imported As Below.");
+            console.log('Client: Server Public Key Imported As Below.');
             console.log(publicKey);
 
             const encryptedPreMaster = await window.crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, preMaster);
-            console.log("Client: Encrypted PreMasterSecret As Below.");
+            console.log('Client: Encrypted PreMasterSecret As Below.');
             console.log(encryptedPreMaster);
 
             return { preMasterSecret: encryptedPreMaster };
         } catch (err) {
-            console.error("Error during encryption:", err);
+            console.error('Error during encryption:', err);
         }
     }
 
     async function computeMasterSecret() {
-        console.log("Client: Master Secret computation initiated.");
+        console.log('Client: Master Secret computation initiated.');
 
         if (serverRandom) {
             try {
                 const masterSecret = await PreMasterSecret.prf(preMaster, 'master secret', PreMasterSecret.combineArrayBuffers(random, serverRandom));
-                console.log("Client: Master Secret Computed As Below.");
+                console.log('Client: Master Secret Computed As Below.');
                 console.log(masterSecret);
                 setMaster(masterSecret);
 
                 const key = await PreMasterSecret.importSeedAsKey(masterSecret);
                 const secret = await PreMasterSecret.deriveSymmetricKey(key, PreMasterSecret.combineArrayBuffers(random, serverRandom), 256);
-                console.log("Client: Secret Key Computed As Below.");
+                console.log('Client: Secret Key Computed As Below.');
                 console.log(secret);
                 setSecret(secret);
 
@@ -180,7 +180,7 @@ export default function Client({ clock, message, setMessage }:
                 const result = await PreMasterSecret.encryptData(secret, data);
                 setMessage(result);
             } catch (error) {
-                console.error("Client: Error during Master Secret computation:", error);
+                console.error('Client: Error during Master Secret computation:', error);
             }
         }
     }
@@ -188,14 +188,14 @@ export default function Client({ clock, message, setMessage }:
     function changeCipherSpec(): TlsChangeCipherSpec {
         return {
             messageType: 'changeCipherSpec'
-        }
+        };
     }
 
     function clientFinished(): TlsFinished {
         return {
             messageType: 'finished',
             verifyData: Buffer.from('')
-        }
+        };
     }
 
     return (
